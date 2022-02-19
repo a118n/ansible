@@ -11,7 +11,7 @@
 ### SSH Key
 
   - If you don't already have a key, generate a new ssh keypair
-  - Paste your PUBLIC key to `terraform/templates/cloud_init.cfg` inside ```ssh_authorized_keys:```
+  - Paste your **PUBLIC** key to `terraform/templates/cloud_init.cfg` inside ```ssh_authorized_keys:``` section of ```ansible``` user
 
 ### Terraform
 
