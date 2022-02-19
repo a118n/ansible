@@ -1,0 +1,83 @@
+---
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family | lower }}.yml"
+
+- name: Install requred packages
+  ansible.builtin.package:
+    name: "{{ required_packages }}"
+    state: present
+
+- name: Download Redis source code
+  ansible.builtin.get_url:
+    url: "https://download.redis.io/releases/redis-{{ redis_version }}.tar.gz"
+    dest: /tmp/
+
+- name: Unarchive Redis source code
+  ansible.builtin.unarchive:
+    src: "/tmp/redis-{{ redis_version }}.tar.gz"
+    dest: /tmp/
+    remote_src: true
+
+- name: Install Redis
+  community.general.make:
+    chdir: "/tmp/redis-{{ redis_version }}/"
+    target: install
+    params:
+      USE_SYSTEMD: yes
+  notify: Restart Redis
+
+- name: Add Redis system user
+  ansible.builtin.user:
+    name: redis
+    comment: Redis User
+    system: true
+    create_home: false
+
+- name: Create necessary directories (1/2)
+  ansible.builtin.file:
+    path: /var/lib/redis
+    state: directory
+    owner: redis
+    group: redis
+    mode: 0770
+
+- name: Create necessary directories (2/2)
+  ansible.builtin.file:
+    path: /etc/redis
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Copy Redis config file
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: /etc/redis/redis.conf
+    owner: redis
+    group: redis
+    mode: 0660
+  notify: Restart Redis
+
+- name: Copy systemd unit file
+  ansible.builtin.copy:
+    src: redis.service
+    dest: /etc/systemd/system/redis.service
+    owner: root
+    group: root
+    mode: 0644
+  notify: Restart Redis
+
+- name: Start Redis
+  ansible.builtin.systemd:
+    name: redis.service
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Cleanup
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "/tmp/redis-{{ redis_version }}"
+    - "/tmp/redis-{{ redis_version }}.tar.gz"

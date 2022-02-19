@@ -19,7 +19,7 @@ Role Variables
 
 - ```cockpit_port``` (int)
 
-  Specify port for Cockpit to use. Defaults to 9090
+  Specify port for Cockpit to use. Defaults to 9090.
 
 Dependencies
 ------------

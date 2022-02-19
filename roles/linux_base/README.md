@@ -17,11 +17,11 @@ Role Variables
 
 - ```proxy``` (string)
 
-  Proxy address to use when ```use_proxy``` is set to ```true```
+  Proxy address to use when ```use_proxy``` is set to ```true```.
 
 - ```use_ssl_certificate``` (boolean)
 
-  If you have SSL certificate for the server and want to install it, set this to ```true```
+  If you have SSL certificate for the server and want to install it, set this to ```true```.
 
   By default, ansible will look for a FQDN.crt and FQDN.key files in the certificates folder at the root of the project. You can customize this in ```Install SSL certificate``` tasks block.
 

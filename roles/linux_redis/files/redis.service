@@ -1,0 +1,22 @@
+[Unit]
+Description=Redis data structure server
+Documentation=https://redis.io/documentation
+AssertPathExists=/var/lib/redis
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/redis-server /etc/redis/redis.conf
+ExecStop=/usr/local/bin/redis-cli shutdown
+Type=notify
+User=redis
+Group=redis
+WorkingDirectory=/var/lib/redis
+LimitNOFILE=10032
+NoNewPrivileges=yes
+UMask=0077
+RestartSec=5s
+Restart=on-success
+
+[Install]
+WantedBy=multi-user.target
