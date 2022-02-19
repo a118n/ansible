@@ -1,6 +1,7 @@
 ---
 galaxy_info:
   role_name: linux_haproxy
+  namespace: a118n
   author: Daniel Allen
   description: Install HAProxy
   license: GPL-3.0-only
