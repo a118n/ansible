@@ -2,10 +2,23 @@
 
 ## Getting started
 
-- KVM
+### KVM
 
-- SSH Key
+  - Make sure you have a working installation of KVM & libvirt.
 
-- Terraform
+  - For DNS resolution: https://libvirt.org/nss.html.
 
-- Ansible
+### SSH Key
+
+  - If you don't already have a key, generate a new ssh keypair.
+  - Paste your PUBLIC key to `terraform/templates/cloud_init.cfg` inside ```ssh_authorized_keys:```.
+
+### Terraform
+
+  - cd into terraform directory and run ```terraform init && terraform apply```.
+  - This should create the required VMs.
+  - Default root password is ```MyPassword123```.
+
+### Ansible
+  - If DNS resolution is not working, populate inventory.yml with IP addresses of the servers.
+  - Now you can test various roles & playbooks.
