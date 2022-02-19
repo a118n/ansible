@@ -1,0 +1,9 @@
+---
+- name: Restart server
+  ansible.builtin.reboot:
+
+- name: Restart HAProxy
+  ansible.builtin.systemd:
+    name: haproxy.service
+    state: restarted
+    daemon_reload: true

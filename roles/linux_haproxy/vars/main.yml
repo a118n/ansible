@@ -1,0 +1,8 @@
+---
+haproxy_version: 2.4.13
+use_ssl: false
+balance_algorithm: source
+hash_type: consistent
+backend_servers:
+  - { name: test-srv-03, ip: 192.168.122.47:80 }
+  - { name: test-srv-04, ip: 192.168.122.85:80 }

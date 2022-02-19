@@ -23,7 +23,17 @@
     #   vars:
     #     postgresql_version: 14
 
-    - role: ../roles/linux_mariadb
+    # - role: ../roles/linux_mariadb
+    #   vars:
+    #     mariadb_version: 10.6
+    #     mariadb_root_password: MyPassword123
+
+    - role: ../roles/linux_haproxy
       vars:
-        mariadb_version: 10.6
-        mariadb_root_password: MyPassword123
+        haproxy_version: 2.4.13
+        use_ssl: false
+        balance_algorithm: source
+        hash_type: consistent
+        backend_servers:
+          - { name: test-srv-03, ip: 192.168.122.138:80 }
+          - { name: test-srv-04, ip: 192.168.122.75:80 }

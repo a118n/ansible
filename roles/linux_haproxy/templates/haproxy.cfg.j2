@@ -1,0 +1,47 @@
+#jinja2: trim_blocks: True, lstrip_blocks: True
+global
+  # log /dev/log local0 info
+  log /dev/log local0 err
+  log /dev/log local0 warning
+  log /dev/log local0 alert
+  log /dev/log local1 notice
+  chroot /var/lib/haproxy
+  user haproxy
+  group haproxy
+  stats timeout 30s
+  maxconn 100000
+  daemon
+
+defaults
+  log global
+  mode http
+  option httplog
+  option dontlognull
+  timeout connect 5000ms
+  timeout client 50000ms
+  timeout server 50000ms
+
+frontend http_front
+  bind *:80
+  {% if use_ssl %}
+  bind *:443 ssl crt /etc/pki/tls/certs/{{ ssl_cert_filename }} alpn h2,http/1.1
+  http-request set-header X-Forwarded-Port %[dst_port]
+  http-request add-header X-Forwarded-Proto https if { ssl_fc }
+  redirect scheme https code 301 unless { ssl_fc }
+  {% endif %}
+  stats uri /haproxy?stats
+  stats refresh 5s
+  option forwardfor
+  default_backend http_back
+
+backend http_back
+  option httpchk
+  http-check expect status 200
+  balance {{ balance_algorithm }}
+  {% if balance_algorithm in ['source', 'uri', 'url_param'] %}
+  hash-type {{ hash_type }}
+  {% endif %}
+  mode http
+  {% for server in backend_servers %}
+  server {{ server.name }} {{ server.ip }} check fall 3 rise 3
+  {% endfor %}
