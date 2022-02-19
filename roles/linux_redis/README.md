@@ -31,10 +31,10 @@ Including an example of how to use your role (for instance, with variables passe
 
     - hosts: servers
       roles:
-         - role: ../roles/linux_redis
-           vars:
-             redis_version: stable
-             redis_port: 6379
+        - role: ../roles/linux_redis
+          vars:
+            redis_version: 6.2.6
+            redis_port: 6379
 
 License
 -------
