@@ -1,6 +1,10 @@
 ---
 firewall_service: ufw
 sudo_group: sudo
+specific_packages:
+  - software-properties-common
+  - ca-certificates
+  - apt-transport-https
 domain_packages:
   - adcli
   - libnss-sss

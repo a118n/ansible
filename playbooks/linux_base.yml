@@ -19,6 +19,11 @@
     #     redis_version: 6.2.6
     #     redis_port: 6379
 
-    - role: ../roles/linux_postgresql
+    # - role: ../roles/linux_postgresql
+    #   vars:
+    #     postgresql_version: 14
+
+    - role: ../roles/linux_mariadb
       vars:
-        postgresql_version: 14
+        mariadb_version: 10.6
+        mariadb_root_password: MyPassword123

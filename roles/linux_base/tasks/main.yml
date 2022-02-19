@@ -71,6 +71,12 @@
     state: present
   when: ansible_os_family == "RedHat"
 
+- name: Install Ubuntu-specific packages
+  ansible.builtin.apt:
+    name: "{{ specific_packages }}"
+    state: present
+  when: ansible_os_family == "Debian"
+
 - name: Install required packages
   ansible.builtin.package:
     name:

@@ -1,0 +1,63 @@
+---
+- name: Disable default modules
+  ansible.builtin.command:
+    cmd: dnf module disable mysql mariadb -y
+    creates: /etc/dnf/modules.d/mariadb.module
+  when: ansible_os_family == "RedHat"
+
+- name: Add MariaDB repository
+  ansible.builtin.shell:
+    cmd: curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash -s -- --skip-maxscale --skip-tools --mariadb-server-version="mariadb-{{ mariadb_version }}"
+    creates: /etc/yum.repos.d/mariadb.repo
+  when: ansible_os_family == "RedHat"
+
+- name: Add MariaDB repository
+  ansible.builtin.shell:
+    cmd: curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash -s -- --skip-maxscale --skip-tools --mariadb-server-version="mariadb-{{ mariadb_version }}"
+    creates: /etc/apt/sources.list.d/mariadb.list
+  when: ansible_os_family == "Debian"
+
+- name: Install MariaDB
+  ansible.builtin.dnf:
+    name:
+      - MariaDB-server
+      - MariaDB-client
+      - MariaDB-backup
+      - MariaDB-shared
+      - mariadb-common
+      - python3-PyMySQL
+    state: present
+    update_cache: true
+  when: ansible_os_family == "RedHat"
+
+- name: Install MariaDB
+  ansible.builtin.apt:
+    name:
+      - mariadb-server
+      - mariadb-client
+      - libmariadb3
+      - mariadb-backup
+      - mariadb-common
+      - python3-pymysql
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: Start MariaDB
+  ansible.builtin.service:
+    name: mariadb
+    enabled: true
+    state: started
+
+- name: Secure MariaDB installation
+  mysql_secure_installation:
+    login_password: ''
+    new_password: "{{ mariadb_root_password }}"
+    user: root
+    login_host: localhost
+    hosts: ['localhost', '127.0.0.1', '::1']
+    change_root_password: true
+    remove_anonymous_user: true
+    disallow_root_login_remotely: true
+    remove_test_db: true
+  notify: Restart MariaDB

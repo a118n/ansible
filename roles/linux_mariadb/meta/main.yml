@@ -1,9 +1,8 @@
 ---
 galaxy_info:
-  role_name: linux_postgresql
-  namespace: a118n
+  role_name: linux_mariadb
   author: Daniel Allen
-  description: Install PostgreSQL
+  description: Install MariaDB
   license: GPL-3.0-only
   min_ansible_version: 2.9
   platforms:
