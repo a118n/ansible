@@ -1,0 +1,79 @@
+---
+- name: Install necessary packages
+  ansible.builtin.package:
+    name: python3-psycopg2
+    state: present
+
+# - name: Install necessary packages
+#   ansible.builtin.apt:
+#     name:
+#       - ca-certificates
+#       - gnupg
+#     state: present
+#   when: ansible_os_family == "Debian"
+
+- name: Add APT key for PostgreSQL repo
+  ansible.builtin.apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Add PostgreSQL repository
+  ansible.builtin.shell:
+    cmd: echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+    creates: /etc/apt/sources.list.d/pgdg.list
+  when: ansible_os_family == "Debian"
+
+- name: Disable default PostgreSQL DNF module
+  ansible.builtin.command:
+    cmd: dnf module disable postgresql -y
+    creates: /etc/dnf/modules.d/postgresql.module
+  when: ansible_os_family == "RedHat"
+
+- name: Add PostgreSQL repository
+  ansible.builtin.dnf:
+    name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+    disable_gpg_check: true
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install PostgreSQL
+  ansible.builtin.dnf:
+    name:
+      - "postgresql{{ postgresql_version }}"
+      - "postgresql{{ postgresql_version }}-server"
+    state: present
+    update_cache: true
+  when: ansible_os_family == "RedHat"
+
+- name: Install PostgreSQL
+  ansible.builtin.apt:
+    name: "postgresql-{{ postgresql_version }}"
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: Initialize database
+  ansible.builtin.command:
+    cmd: "/usr/pgsql-{{ postgresql_version }}/bin/postgresql-{{ postgresql_version }}-setup initdb"
+    creates: "/var/lib/pgsql/{{  postgresql_version }}/data/postmaster.pid"
+  when: ansible_os_family == "RedHat"
+
+- name: Start PostgreSQL
+  ansible.builtin.systemd:
+    name: "postgresql-{{ postgresql_version }}"
+    enabled: true
+    state: started
+  when: ansible_os_family == "RedHat"
+
+- name: Start PostgreSQL
+  ansible.builtin.systemd:
+    name: postgresql
+    enabled: true
+    state: started
+  when: ansible_os_family == "Debian"
+
+- name: Set password for system postgres user
+  ansible.builtin.user:
+    name: postgres
+    password: $6$mysecretsalt$aTfylKTdiCrr.HBtme08gEhvSZO.dg2HTLRi8m2O71MeGvUd.D6QlH8e3vD85CEq7veyPVxlCfYhUoKQFX7Fq/ # MyPassword123
