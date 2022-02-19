@@ -1,0 +1,3 @@
+---
+use_ssl_certificate: false
+cockpit_port: 9090

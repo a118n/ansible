@@ -1,0 +1,224 @@
+---
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family | lower }}.yml"
+
+- name: Configure hostname
+  ansible.builtin.hostname:
+    name: "{{ ansible_hostname }}.domain.net"
+  when: ansible_os_family == "Debian"
+
+- name: Configure APT to use proxy
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/90curtin-aptproxy
+    owner: root
+    group: root
+    mode: 0644
+    content: |
+      Acquire::http::Proxy "{{ proxy }}";
+      Acquire::https::Proxy "{{ proxy }}";
+  when: ansible_os_family == "Debian" and use_proxy
+
+- name: Configure DNF to use proxy
+  ansible.builtin.lineinfile:
+    path: /etc/yum.conf
+    line: "proxy={{ proxy }}"
+  when: ansible_os_family == "RedHat" and use_proxy
+
+- name: Configure DNF timeout
+  ansible.builtin.lineinfile:
+    path: /etc/yum.conf
+    line: timeout=300
+  when: ansible_os_family == "RedHat"
+
+- name: Configure DNF minrate
+  ansible.builtin.lineinfile:
+    path: /etc/yum.conf
+    line: minrate=100
+  when: ansible_os_family == "RedHat"
+
+- name: Limit kernel installations to 2
+  ansible.builtin.lineinfile:
+    path: /etc/yum.conf
+    regexp: "^installonly_limit="
+    line: installonly_limit=2
+  when: ansible_os_family == "RedHat"
+
+- name: Disable SELinux
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: "^SELINUX="
+    line: SELINUX=disabled
+  when: ansible_os_family == "RedHat"
+
+- name: Allow admin group to use sudo
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    regexp: "^%{{ sudo_group }}"
+    line: "%{{ sudo_group }}  ALL=(ALL)  ALL"
+    validate: /usr/sbin/visudo -csf %s
+
+- name: Deny root SSH access
+  ansible.builtin.lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^PermitRootLogin"
+    line: "PermitRootLogin no"
+    state: present
+
+- name: Update system
+  ansible.builtin.package:
+    name: "*"
+    state: latest
+  notify: Reboot server
+
+- name: Install RHEL-specific packages
+  ansible.builtin.yum:
+    name: "{{ specific_packages }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install required packages
+  ansible.builtin.package:
+    name:
+      - open-vm-tools
+      - vim
+      - curl
+      - wget
+      - rsync
+      - sshpass
+      - git
+      - bash-completion
+      - expect
+      - lsof
+    state: present
+
+- name: Remove dependencies that are no longer required
+  ansible.builtin.apt:
+    autoremove: true
+  when: ansible_os_family == "Debian"
+  notify: Reboot server
+
+- name: Remove dependencies that are no longer required
+  ansible.builtin.yum:
+    autoremove: true
+  when: ansible_os_family == "RedHat"
+  notify: Reboot server
+
+- name: Clean local repository from obsolete packages
+  ansible.builtin.apt:
+    autoclean: true
+  when: ansible_os_family == "Debian"
+
+- name: Remove cloud-init
+  ansible.builtin.apt:
+    name: cloud-init
+    state: absent
+    purge: true
+  when: ansible_os_family == "Debian"
+
+- name: Remove cloud-init files
+  ansible.builtin.file:
+    path:
+      - /etc/cloud
+      - /var/lib/cloud
+    state: absent
+  when: ansible_os_family == "Debian"
+
+- name: Gather information about installed packages
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Disable firewall
+  ansible.builtin.service:
+    name: "{{ firewall_service }}"
+    enabled: false
+    state: stopped
+  when: firewall_service in ansible_facts.packages
+
+- name: Configure git
+  community.general.git_config:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    scope: system
+  with_items:
+    - {name: "credential.helper", value: "cache"}
+
+- name: Configure git to use proxy
+  community.general.git_config:
+    name: "{{ item }}"
+    value: "{{ proxy }}"
+    scope: system
+  with_items:
+    - "http.proxy"
+    - "https.proxy"
+  when: use_proxy
+
+- name: Install SSL certificate
+  tags: ssl
+  when: use_ssl_certificate
+  block:
+    - name: Copy SSL certificate
+      ansible.builtin.copy:
+        src: "{{ inventory_dir }}/certificates/{{ ansible_fqdn }}.crt"
+        dest: "/etc/pki/tls/certs/{{ ansible_fqdn }}.crt"
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Copy SSL certificate key
+      ansible.builtin.copy:
+        src: "{{ inventory_dir }}/certificates/{{ ansible_fqdn }}.key"
+        dest: "/etc/pki/tls/private/{{ ansible_fqdn }}.key"
+        owner: root
+        group: root
+        mode: 0400
+
+- name: Domain Tasks
+  tags: domain
+  when: join_domain
+  block:
+    - name: Install packages required for domain join
+      ansible.builtin.package:
+        name: "{{ domain_packages }}"
+        state: present
+
+    - name: Check domain membership
+      ansible.builtin.shell: /bin/bash -c "realm list | grep sssd"
+      register: domain_joined
+      changed_when: false
+      ignore_errors: true
+
+    - name: Join domain
+      ansible.builtin.script: ../files/realm-join.sh
+      args:
+        executable: /usr/bin/expect
+      when: domain_joined.failed
+
+    - name: Narrow domain login permissions to GLRU_Admins group
+      ansible.builtin.shell: "realm deny --all && realm permit -g 'GLRU_Admins_{{ ansible_hostname | upper }}'"
+      when: domain_joined.failed
+
+    - name: Allow GLRU_Admins group to use sudo
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/domain_admins
+        owner: root
+        group: root
+        mode: 0440
+        validate: visudo -cf %s
+        content: |
+          %GLRU_Admins_{{ ansible_hostname | upper }}@DOMAIN.NET ALL=(ALL:ALL) ALL
+      when: domain_joined.failed
+
+    - name: Create GLRU_Admins group in domain
+      become: false
+      community.windows.win_domain_group:
+        name: "GLRU_Admins_{{ ansible_hostname.split('.')[0].upper() }}"
+        scope: domainLocal
+        path: OU=Groups,DC=domain,DC=net
+      delegate_to: "{{ groups['ad_dc'][0] }}"
+      vars:
+        ansible_user: Administrator@DOMAIN.NET
+        ansible_port: 5985
+      when: domain_joined.failed
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers

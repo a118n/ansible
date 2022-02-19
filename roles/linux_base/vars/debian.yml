@@ -1,0 +1,13 @@
+---
+firewall_service: ufw
+sudo_group: sudo
+domain_packages:
+  - adcli
+  - libnss-sss
+  - libpam-sss
+  - oddjob
+  - oddjob-mkhomedir
+  - realmd
+  - samba-common-bin
+  - sssd
+  - sssd-tools

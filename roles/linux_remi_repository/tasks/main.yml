@@ -1,0 +1,16 @@
+---
+- name: Add RPM Keys
+  ansible.builtin.rpm_key:
+    key: "https://rpms.remirepo.net/{{ item }}"
+    state: present
+  with_items:
+    - RPM-GPG-KEY-remi
+    - RPM-GPG-KEY-remi2017
+    - RPM-GPG-KEY-remi2018
+    - RPM-GPG-KEY-remi2019
+    - RPM-GPG-KEY-remi2020
+
+- name: Add Repository
+  ansible.builtin.dnf:
+    name: http://rpms.remirepo.net/enterprise/remi-release-8.rpm
+    state: present

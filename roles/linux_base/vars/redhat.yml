@@ -1,0 +1,16 @@
+---
+firewall_service: firewalld
+sudo_group: wheel
+specific_packages:
+  - "@Development Tools"
+  - dnf-utils
+  - epel-release
+domain_packages:
+  - adcli
+  - krb5-workstation
+  - oddjob
+  - oddjob-mkhomedir
+  - realmd
+  - samba-common
+  - samba-common-tools
+  - sssd

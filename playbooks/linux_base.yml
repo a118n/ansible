@@ -1,0 +1,17 @@
+---
+- name: Install base roles on all Linux servers
+  hosts: linux
+  become: true
+  roles:
+    - role: ../roles/linux_base
+      vars:
+        use_proxy: false
+        use_ssl_certificate: false
+        join_domain: false
+
+    - role: ../roles/linux_cockpit
+      vars:
+        use_ssl_certificate: false
+        cockpit_port: 9091
+
+    - role: ../roles/linux_remi_repository

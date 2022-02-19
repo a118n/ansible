@@ -1,0 +1,7 @@
+---
+all:
+  children:
+    linux:
+      hosts:
+        test-srv-01.test:
+        test-srv-02.test:

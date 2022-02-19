@@ -1,0 +1,51 @@
+---
+- name: Install Cockpit package
+  ansible.builtin.package:
+    name: cockpit
+    state: present
+
+- name: Install SSL certificate
+  tags: ssl
+  when: use_ssl_certificate
+  notify: Restart Cockpit
+  block:
+    - name: Copy SSL certificate
+      ansible.builtin.copy:
+        src: "{{ inventory_dir }}/certificates/{{ ansible_fqdn }}.crt"
+        dest: "/etc/cockpit/ws-certs.d/{{ ansible_fqdn }}.crt"
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Copy SSL certificate key
+      ansible.builtin.copy:
+        src: "{{ inventory_dir }}/certificates/{{ ansible_fqdn }}.key"
+        dest: "/etc/cockpit/ws-certs.d/{{ ansible_fqdn }}.key"
+        owner: root
+        group: cockpit-ws
+        mode: 0640
+
+- name: Copy systemd socket config
+  when: cockpit_port and cockpit_port != 9090
+  notify: Restart Cockpit
+  block:
+    - name: Creaate systemd socket folder
+      ansible.builtin.file:
+        path: /etc/systemd/system/cockpit.socket.d
+        state: directory
+        mode: 0755
+        owner: root
+        group: root
+    - name: Copy systemd socket config
+      ansible.builtin.template:
+        src: listen.conf.j2
+        dest: /etc/systemd/system/cockpit.socket.d/listen.conf
+        mode: 0644
+        owner: root
+        group: root
+
+- name: Start Cockpit
+  ansible.builtin.systemd:
+    name: cockpit.socket
+    enabled: true
+    state: started

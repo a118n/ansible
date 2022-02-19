@@ -1,0 +1,33 @@
+---
+- name: Check uptime of servers
+  hosts: all
+  gather_facts: true
+  vars:
+    # Convert uptime to days
+    uptime: "{{ (ansible_uptime_seconds / 86400) | round(0, 'floor') | int }}"
+  tasks:
+    - name: Display uptime
+      ansible.builtin.debug:
+        msg: Uptime is {{ now() - now().fromtimestamp(now(fmt='%s') | int - ansible_uptime_seconds) }}
+
+    - name: Filter and group by high uptime (> 30 days)
+      group_by:
+        key: high_uptime
+      when: uptime | int > 30
+
+# - name: Send emails
+#   hosts: high_uptime
+#   gather_facts: false
+#   vars:
+#     uptime: "{{ (ansible_uptime_seconds / 86400) | round(0, 'floor') | int }}"
+#   tasks:
+#     - name: Send emails
+#       mail:
+#         host: smtp.mail.com
+#         port: 25
+#         subject: "{{ ansible_hostname }} - High Uptime"
+#         body: "{{ ansible_hostname }} uptime is {{ uptime }} days."
+#         from: ansible@mail.com
+#         to:
+#           - Daniel Allen <daniel.allen@mail.com>
+#       delegate_to: localhost

@@ -1,0 +1,5 @@
+---
+use_proxy: false
+proxy: http://10.10.10.10:8080
+use_ssl_certificate: false
+join_domain: false

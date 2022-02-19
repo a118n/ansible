@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: linux_base
+  namespace: a118n
+  author: Daniel Allen
+  description: Base role for all Linux servers
+  license: GPL-3.0-only
+  min_ansible_version: 2.9
+  platforms:
+    - name: RHEL
+      versions:
+        - 8
+    - name: Ubuntu
+      versions:
+        - 20.04
+  galaxy_tags: []
+dependencies: []
