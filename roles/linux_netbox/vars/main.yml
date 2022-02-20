@@ -1,0 +1,8 @@
+---
+netbox_db_name: netbox
+netbox_db_user: netboxuser
+netbox_db_user_password: Qazwsx123
+netbox_secret_key: NRgpUk3IMZVJq25Bz9!YNrgSUO7m)BouSw#eB-ZO4Hk2gnzMW-
+netbox_admin_username: admin
+netbox_admin_password: MyPassword123
+netbox_admin_email: noreply-netbox@mail.com

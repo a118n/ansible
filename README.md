@@ -1,4 +1,4 @@
-# Infrastructure to test Ansible roles & playbooks
+# My collection of Ansible roles and test infrastructure
 
 ## Getting started
 
@@ -21,4 +21,4 @@
 
 ### Ansible
   - If DNS resolution is not working, populate inventory.yml with IP addresses of the servers
-  - Now you can test various roles & playbooks
+  - Now you can run ansible playbooks on the VMs

@@ -1,0 +1,13 @@
+---
+- name: Template
+  hosts: test-srv-01.test
+  tasks:
+    - name: show ansible_ssh_host
+      debug:
+        msg: "{{ ansible_ssh_host }}"
+    - name: show inventory_hostname
+      debug:
+        msg: "{{ inventory_hostname }}"
+    - name: show ansible_hostname
+      debug:
+        msg: "{{ ansible_fqdn }}"

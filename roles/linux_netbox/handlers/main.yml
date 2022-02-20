@@ -1,0 +1,14 @@
+---
+- name: Restart netbox services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+    daemon_reload: true
+  with_items:
+    - netbox.service
+    - netbox-rq.service
+
+- name: Restart NGINX
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted

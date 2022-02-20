@@ -1,0 +1,37 @@
+- name: Install NetBox
+  hosts: test-srv-01.test
+  become: true
+  roles:
+    - role: ../roles/linux_base
+      vars:
+        use_proxy: false
+        use_ssl_certificate: false
+        join_domain: false
+
+    - role: ../roles/linux_cockpit
+      vars:
+        use_ssl_certificate: false
+        cockpit_port: 9090
+
+    - role: ../roles/linux_postgresql
+      vars:
+        postgresql_version: 14
+
+    - role: ../roles/linux_redis
+      vars:
+        redis_version: 6.2.6
+        redis_port: 6379
+
+    - role: ../roles/linux_nginx
+
+    - role: ../roles/linux_netbox
+      vars:
+        netbox_db_name: netbox
+        netbox_db_user: netbox
+        netbox_db_user_password: MyPassword123
+        netbox_secret_key: NRgpUk3IMZVJq25Bz9!YNrgSUO7m)BouSw#eB-ZO4Hk2gnzMW-
+        netbox_admin_username: admin
+        netbox_admin_password: MyPassword123
+        netbox_admin_email: noreply-netbox@mail.com
+        netbox_timezone: Europe/Moscow
+        redis_port: 6379

@@ -1,0 +1,140 @@
+---
+- name: Install required packages
+  ansible.builtin.dnf:
+    name:
+      - '@python39'
+      - python39-psycopg2
+      - gcc
+      - python39-devel
+      - libxml2-devel
+      - libxslt-devel
+      - libffi-devel
+      - libpq-devel
+      - openssl-devel
+      - redhat-rpm-config
+    state: present
+
+- name: Upgrade PIP
+  ansible.builtin.pip:
+    name: pip
+    state: latest
+
+- name: Add netbox system user
+  ansible.builtin.user:
+    name: netbox
+    comment: NetBox User
+    system: true
+    create_home: false
+
+- name: Create a new database for NetBox
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: "{{ netbox_db_name }}"
+    state: present
+
+- name: Grant netbox user database privileges
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    db: "{{ netbox_db_name }}"
+    name: "{{ netbox_db_user }}"
+    password: "{{ netbox_db_user_password }}"
+    priv: ALL
+    state: present
+
+- name: Clone NetBox repository
+  ansible.builtin.git:
+    repo: https://github.com/netbox-community/netbox.git
+    dest: /opt/netbox/
+    depth: 1
+    version: master
+    force: true
+
+- name: Change ownership of repository
+  ansible.builtin.file:
+    path: /opt/netbox/
+    state: directory
+    owner: netbox
+    group: netbox
+    recurse: true
+
+- name: Copy NetBox config file
+  ansible.builtin.template:
+    src: configuration.py.j2
+    dest: /opt/netbox/netbox/netbox/configuration.py
+    owner: netbox
+    group: netbox
+    mode: 0644
+  notify: Restart netbox services
+
+- name: Run NetBox installation script
+  ansible.builtin.command:
+    cmd: /opt/netbox/upgrade.sh
+  notify: Restart netbox services
+
+- name: Create symlink for houskeeping tasks
+  ansible.builtin.file:
+    src: /opt/netbox/contrib/netbox-housekeeping.sh
+    dest: /etc/cron.daily/netbox-housekeeping
+    owner: root
+    group: root
+    state: link
+
+- name: Check if superuser account is already created
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    db: "{{ netbox_db_name }}"
+    query: "SELECT username from auth_user WHERE username = '{{ netbox_admin_username }}'"
+  register: su_db_query
+  # changed_when: false
+  # ignore_errors: true
+
+- name: Create NetBox superuser
+  ansible.builtin.shell:
+    cmd: source /opt/netbox/venv/bin/activate && cd /opt/netbox/netbox && python3 manage.py createsuperuser --no-input
+  environment:
+    DJANGO_SUPERUSER_USERNAME: "{{ netbox_admin_username }}"
+    DJANGO_SUPERUSER_PASSWORD: "{{ netbox_admin_password }}"
+    DJANGO_SUPERUSER_EMAIL: "{{ netbox_admin_email }}"
+  when: su_db_query.rowcount == 0
+
+- name: Copy Gunicorn config
+  ansible.builtin.copy:
+    src: gunicorn.py
+    dest: /opt/netbox/gunicorn.py
+    owner: netbox
+    group: netbox
+    mode: 0644
+
+- name: Copy systemd unit files for Gunicorn
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - netbox.service
+    - netbox-rq.service
+  notify: Restart netbox services
+
+- name: Start netbox services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  with_items:
+    - netbox.service
+    - netbox-rq.service
+
+- name: Copy NGINX config
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: Restart NGINX
