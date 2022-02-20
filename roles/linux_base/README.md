@@ -1,4 +1,4 @@
-Role Name
+linux_base
 =========
 
 Base role for all Linux servers.

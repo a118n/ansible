@@ -1,4 +1,4 @@
-Role Name
+linux_haproxy
 =========
 
 Install HAProxy.

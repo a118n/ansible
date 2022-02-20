@@ -1,4 +1,4 @@
-Role Name
+linux_mariadb
 =========
 
 Install MariaDB.
